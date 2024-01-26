@@ -1,14 +1,21 @@
 #!/usr/bin/env python3
 
 import fnmatch
+import os
 
 import cli
 import codeowner_parser
+from utils import get_git_root
 
 
 def _get_owners(co_data, path):
     """Get the owner of the file or folder."""
+    path = os.path.abspath(path)
+    if path.startswith(get_git_root()):
+        path = path[len(get_git_root()) :]
     for _, _, pattern, owners in co_data:
+        if pattern.endswith("/"):
+            pattern = pattern + "*"
         if fnmatch.filter([path], pattern):
             return owners
 
@@ -24,7 +31,7 @@ def _main():
     if cli_args.get:
         owners = _get_owners(co_data, cli_args.path)
         if owners:
-            print(" ".join(owners))
+            print(", ".join(owners))
         else:
             print("No owners found")
         return
