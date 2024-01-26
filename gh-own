@@ -1,35 +1,37 @@
-#!/usr/bin/env bash
-set -e
+#!/usr/bin/env python3
 
-echo "Hello gh-own!"
+import fnmatch
 
-# Snippets to help get started:
+import cli
+import codeowner_parser
 
-# Determine if an executable is in the PATH
-# if ! type -p ruby >/dev/null; then
-#   echo "Ruby not found on the system" >&2
-#   exit 1
-# fi
 
-# Pass arguments through to another command
-# gh issue list "$@" -R cli/cli
+def _get_owners(co_data, path):
+    """Get the owner of the file or folder."""
+    for _, _, pattern, owners in co_data:
+        if fnmatch.filter([path], pattern):
+            return owners
 
-# Using the gh api command to retrieve and format information
-# QUERY='
-#   query($endCursor: String) {
-#     viewer {
-#       repositories(first: 100, after: $endCursor) {
-#         nodes {
-#           nameWithOwner
-#           stargazerCount
-#         }
-#       }
-#     }
-#   }
-# '
-# TEMPLATE='
-#   {{- range $repo := .data.viewer.repositories.nodes -}}
-#     {{- printf "name: %s - stargazers: %v\n" $repo.nameWithOwner $repo.stargazerCount -}}
-#   {{- end -}}
-# '
-# exec gh api graphql -f query="${QUERY}" --paginate --template="${TEMPLATE}"
+    return None
+
+
+def _main():
+    cli_args = cli.parse_args()
+    co_data = codeowner_parser.parse_codeowners()
+    co_data = sorted(co_data, key=lambda x: x[0])
+    co_data.reverse()
+
+    if cli_args.get:
+        owners = _get_owners(co_data, cli_args.path)
+        if owners:
+            print(" ".join(owners))
+        else:
+            print("No owners found")
+        return
+
+    for count, line, pattern, owners in co_data:
+        print(f"{count}: {line} {pattern} {owners}")
+
+
+if __name__ == "__main__":
+    _main()
